@@ -2,7 +2,7 @@
 
 The sbb folder consists of a scraping file.
 
-### Dependencies that need to be satisfied before.
+### Dependencies that need to be satisfied.
 * Download the geckdodriver - mozilla driver
 * Extract the file and make it accessible. (PATH variable)
 * Install selenium

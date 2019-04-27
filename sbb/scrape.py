@@ -2,6 +2,8 @@ from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import NoSuchElementException
 import time
+import json
+import pandas as pd
 SBB_URL = 'https://www.sbb.ch/en/buying/pages/fahrplan/fahrplan.xhtml'
 
 class SBB():
@@ -52,12 +54,16 @@ if __name__ == '__main__':
     print("starting scraping")
     #You can do multiple searches with this framework. Hopefully, you know the list of the cities you want to search for .
     sbb = SBB()
-    sbb.search('Lucens', 'Salisbury')
+    fromCity = 'Lucerne'
+    toCity = 'Interlaken'
+    sbb.search(fromCity, toCity)
     time.sleep(10) # Need to find an alternative solution to sleep. First thing that came to mind, to make sure that the following code runs after the page is loaded with the results.
     sbb.parseResults()
     print(sbb.searchResults)
     sbb.goToSearchPage()
-    time.sleep(5)
+    df = pd.read_json(json.dumps(sbb.searchResults))
+    df.to_csv('searchResults'+fromCity+'-'+toCity+'.csv')
+    #time.sleep(5)
     sbb.browser.close() # Do this once you're done.
     
     # If you're multithreading , create a function of whatever written in the main. write a method for persisting the scraped results in a DB.

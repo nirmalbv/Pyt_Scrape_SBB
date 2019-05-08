@@ -9,8 +9,9 @@ SBB_URL = 'https://www.sbb.ch/en/buying/pages/fahrplan/fahrplan.xhtml'
 class SBB():
     def __init__(self):
         opts = Options()
-        #opts.set_headless() # comment this if you want to see the browser.
+        # opts.set_headless() # comment this if you want to see the browser.
         self.browser = Firefox(options = opts)
+        self.browser.fullscreen_window()
         self.browser.get(SBB_URL)
         self.searchResults = []
 
@@ -30,24 +31,29 @@ class SBB():
         for route in allRoutes:
             try:
                 connectionDetails = route.find_element_by_class_name('mod_timetable_connection_details')
+                route.click()
                 routemode = connectionDetails.find_element_by_xpath('./div/div/span[2]').text
+                expanded_element = route.find_element_by_class_name('mod_accordion_item_content')
                 directionName = connectionDetails.find_element_by_class_name('mod_timetable_direction').text
-                startTime = connectionDetails.find_element_by_class_name('mod_timetable_starttime').text
-                endTime = connectionDetails.find_element_by_class_name('mod_timetable_endtime').text
+                startTime = connectionDetails.find_element_by_class_name('mod_timetable_starttime').find_element_by_xpath('.//span[@data-timetable= "parse-time"]').text
+                endTime = connectionDetails.find_element_by_class_name('mod_timetable_endtime').find_element_by_xpath('.//span[@data-timetable= "parse-time"]').text
+                trainName = expanded_element.find_element_by_xpath('//*[@id="stage_0_0"]/div[1]/div[1]/span[4]').get_attribute('innerHTML')
                 info = {
                     "mode": routemode,
                     "directionName":directionName,
                     "startTime":startTime,
                     "endTime":endTime,
-                    "duration":route.find_element_by_class_name('mod_timetable_duration').text,
+                    "duration":route.find_element_by_class_name('mod_timetable_duration').find_element_by_xpath('.//span[@data-timetable="parse-duration"]').text,
                     "noOfChanges":route.find_element_by_class_name('mod_timetable_change').find_element_by_xpath('./p[1]').text,
                     "occupancyListText":route.find_element_by_class_name('mod_timetable_occupancy').text,
                     "platform":route.find_element_by_class_name('mod_timetable_platform').text,
                     "timetableMessage":route.find_element_by_class_name('mod_timetable_message').text,
-                    "price": route.find_element_by_class_name('timetableBuyButtonLabel').text
+                    "price": route.find_element_by_class_name('timetableBuyButtonLabel').text.replace("from",""),
+                    "trainName":trainName
                 }
                 self.searchResults.append(info)
-            except NoSuchElementException:
+            except Exception as error:
+                print(error)
                 continue
 
 

@@ -8,6 +8,7 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
+from bs4 import BeautifulSoup
 import time
 import json
 import pandas as pd
@@ -34,7 +35,6 @@ class ACE():
     def getDropDownOptions(self):
         self.formOptions = self.browser.find_element_by_name("formPickupLocation")
         self.dropDownOptions = [o.text for o in Select(self.browser.find_element_by_name("formPickupLocation")).options]
-        print(self.dropDownOptions)
  
     def pushDateToBrowser(self, date, diffMonths, isDropOff=False):
         if isDropOff:
@@ -105,32 +105,66 @@ class ACE():
                     "maxSeats": "",
                     "maxLuggage": "",
                     "image": "",
-                    "gpsIncluded": True,
-                    "gpsCost": "",
-                    "insuranceType": "",
-                    "insuranceCost": "",
                     "carCost": "",
                     "totalCost": "",
-                    "currencyCode": ""
+                    "currencyCode": "",
+                    "insuranceDetails": [],
+                    "otherOptions": []
                 }
             for i in range(0,totalCars):
+                # Hide the itineray summary 
+                itemSummary = self.browser.find_element_by_class_name("l-booking-summary-bar")
+                self.browser.execute_script("arguments[0].style.visibility='hidden'", itemSummary)
                 action = ActionChains(self.browser)
                 detailsButton = self.browser.find_elements_by_class_name("c-vehicle-card")[i].find_element_by_class_name("c-vehicle-card__action")
-                print(detailsButton.text)
-                #time.sleep(4)
                 action.move_to_element(detailsButton)
                 action.click(detailsButton).perform()
-                carDetailsDOM = WebDriverWait(self.browser, MAX_TIMEOUT).until(lambda x: x.find_element_by_class_name("l-vehicle-panel__inner"))
-                parsedCar = self.parseCarDetail(carDetailsDOM, parsedCar)   
+                WebDriverWait(self.browser, MAX_TIMEOUT).until(lambda x: x.find_element_by_class_name("l-booking__step"))
+                parsedCar = self.parseCarDetail(self.browser, parsedCar)
+                print(parsedCar)
                 parsedCars.append(parsedCar)
                 self.browser.back()
                 WebDriverWait(self.browser, MAX_TIMEOUT).until(lambda x: x.find_element_by_class_name("l-cars__cards"))
             return parsedCars
         except TimeoutException:
-                pass
+            print("Am i here in time out exception??")
+            return parsedCars
         
     
     def parseCarDetail(self, carDetail, parsedCar):
+        elements = self.browser.find_elements_by_class_name("l-booking__step")
+        inner = carDetail.find_element_by_class_name("l-vehicle-panel__inner")
+        insuranceDetails = elements[0].find_elements_by_class_name("c-option-card__main")
+        otherOptions = elements[1].find_elements_by_class_name("x-option-card__main")
+        parsedCar["carName"] = inner.find_element_by_class_name("l-vehicle-panel__subtitle").get_attribute("textContent")
+        parsedCar["carType"] = inner.find_element_by_class_name("l-vehicle-panel__title").get_attribute("textContent")
+        parsedCar["image"] = inner.find_element_by_class_name("l-vehicle-panel__image").find_element_by_xpath('./img').get_attribute("src")
+        
+
+
+        specifications = inner.find_element_by_class_name("l-vehicle-panel__specifications")
+        parsedCar["gearType"] = specifications.find_element_by_xpath('//img[contains(@src, "transmission")]').get_attribute("alt")
+        parsedCar["maxSeats"] = specifications.find_element_by_xpath('//img[contains(@src, "passengers")]').get_attribute("alt")
+        parsedCar["maxLuggage"] = specifications.find_element_by_xpath('//img[contains(@src, "luggage")]').get_attribute("alt")
+
+        # cost = inner.find_element_by_xpath('//div[contains(@class, "total")]')
+        # totalcost = cost.find_element_by_class_name("l-vehicle-panel__total-price")
+        # parsedCar["currencyCode"] = totalcost.find_element_by_xpath('./span').get_attribute("textContent")
+        # parsedCar["totalCost"] = totalcost.get_attribute("textContent")
+        for _ins in insuranceDetails:
+            insur = {
+                "name": _ins.find_element_by_class_name("c-option-card__title").get_attribute("textContent"),
+                "price": _ins.find_element_by_class_name("c-option-card__price").get_attribute("textContent")
+            }
+            parsedCar["insuranceDetails"].append(insur)
+
+        for _opt in otherOptions:
+            opt = {
+                "title": _opt.find_element_by_class_name("x-option-card__title").get_attribute("textContent"),
+                "price": _opt.find_element_by_class_name("x-option-card__price").get_attribute("textContent")
+            }
+            parsedCar["otherOptions"].append(opt)
+        
         return parsedCar
 
         
@@ -154,7 +188,7 @@ if __name__ == "__main__":
     try:
         carsDOM = WebDriverWait(ace.browser, MAX_TIMEOUT).until(lambda x: x.find_element_by_class_name("l-cars__cards"))
         parsed = ace.parseCars(carsDOM)
-        print(parsed)
+        #print("Parsed is ", parsed)
     except TimeoutException:
         print("Loading took too much time!-Try again")
 

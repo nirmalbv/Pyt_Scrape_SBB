@@ -121,7 +121,6 @@ class ACE():
                 action.click(detailsButton).perform()
                 WebDriverWait(self.browser, MAX_TIMEOUT).until(lambda x: x.find_element_by_class_name("l-booking__step"))
                 parsedCar = self.parseCarDetail(self.browser, parsedCar)
-                print(parsedCar)
                 parsedCars.append(parsedCar)
                 self.browser.back()
                 WebDriverWait(self.browser, MAX_TIMEOUT).until(lambda x: x.find_element_by_class_name("l-cars__cards"))
@@ -141,16 +140,16 @@ class ACE():
         parsedCar["image"] = inner.find_element_by_class_name("l-vehicle-panel__image").find_element_by_xpath('./img').get_attribute("src")
         
 
-
         specifications = inner.find_element_by_class_name("l-vehicle-panel__specifications")
         parsedCar["gearType"] = specifications.find_element_by_xpath('//img[contains(@src, "transmission")]').get_attribute("alt")
         parsedCar["maxSeats"] = specifications.find_element_by_xpath('//img[contains(@src, "passengers")]').get_attribute("alt")
         parsedCar["maxLuggage"] = specifications.find_element_by_xpath('//img[contains(@src, "luggage")]').get_attribute("alt")
 
-        # cost = inner.find_element_by_xpath('//div[contains(@class, "total")]')
-        # totalcost = cost.find_element_by_class_name("l-vehicle-panel__total-price")
-        # parsedCar["currencyCode"] = totalcost.find_element_by_xpath('./span').get_attribute("textContent")
-        # parsedCar["totalCost"] = totalcost.get_attribute("textContent")
+        cost = WebDriverWait(self.browser, MAX_TIMEOUT).until(lambda x: x.find_element_by_class_name("l-vehicle-panel__total"))
+        parsedCar["carCost"] = cost.find_element_by_class_name("l-vehicle-panel__total-item-total").get_attribute("textContent")
+        totalcost = cost.find_element_by_class_name("l-vehicle-panel__total-price")
+        parsedCar["currencyCode"] = totalcost.find_element_by_xpath('./span').get_attribute("textContent")
+        parsedCar["totalCost"] = totalcost.get_attribute("textContent")
         for _ins in insuranceDetails:
             insur = {
                 "name": _ins.find_element_by_class_name("c-option-card__title").get_attribute("textContent"),
@@ -164,7 +163,7 @@ class ACE():
                 "price": _opt.find_element_by_class_name("x-option-card__price").get_attribute("textContent")
             }
             parsedCar["otherOptions"].append(opt)
-        
+
         return parsedCar
 
         
@@ -188,7 +187,7 @@ if __name__ == "__main__":
     try:
         carsDOM = WebDriverWait(ace.browser, MAX_TIMEOUT).until(lambda x: x.find_element_by_class_name("l-cars__cards"))
         parsed = ace.parseCars(carsDOM)
-        #print("Parsed is ", parsed)
+        print("Parsed is ", parsed)
     except TimeoutException:
         print("Loading took too much time!-Try again")
 

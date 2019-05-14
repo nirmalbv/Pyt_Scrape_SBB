@@ -8,23 +8,24 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
-from bs4 import BeautifulSoup
 import time
 import json
 import pandas as pd
 from flask import Flask, jsonify
 import datetime
 import re
+from flask import request
+MAX_TIMEOUT = 10
 ACE_URL = 'https://www.acerentalcars.co.nz/'
 app = Flask(__name__)
 
 class ACE():
     def __init__(self):
         options = ChromeOptions()
-        #options.add_argument("--headless")
+        options.add_argument("--headless")
         options.add_argument('--disable-logging')
-        #options.add_argument("--start-maximized")
-        #options.add_argument("--no-sandbox")
+        options.add_argument("--start-maximized")
+        options.add_argument("--no-sandbox")
         self.browser = Chrome(executable_path='/home/mancunian92/Documents/chromedriver', chrome_options=options)
         self.browser.get(ACE_URL)
         self.searchResults = []
@@ -93,12 +94,14 @@ class ACE():
         self.selectLocation(pickupLocation, dropoffLocation, isSamePickup=False)
         self.browser.find_element_by_class_name("l-hero__booking-action__submit--btn").click()
     
-    def parseCars(self, cars):
+    def parseCars(self, ace):
         try:
+            cars = WebDriverWait(ace.browser, MAX_TIMEOUT).until(lambda x: x.find_element_by_class_name("l-cars__cards"))
             parsedCars = []
             cars = cars.find_elements_by_class_name("c-vehicle-card")
             totalCars = len(cars)
-            parsedCar = {
+            for i in range(0,totalCars):
+                parsedCar = {
                     "carName": "",
                     "carType": "",
                     "gearType": "",
@@ -111,7 +114,6 @@ class ACE():
                     "insuranceDetails": [],
                     "otherOptions": []
                 }
-            for i in range(0,totalCars):
                 # Hide the itineray summary 
                 itemSummary = self.browser.find_element_by_class_name("l-booking-summary-bar")
                 self.browser.execute_script("arguments[0].style.visibility='hidden'", itemSummary)
@@ -178,18 +180,26 @@ def getPickupLocations():
     ace = ACE()
     return jsonify({"locations": ace.dropDownOptions})
 
-if __name__ == "__main__":
-    #app.run(debug=True)
-    MAX_TIMEOUT = 10
+@app.route("/search", methods={'POST'})
+def search():
+    req = request.get_json()
     ace = ACE()
-    #ace.enterPromocode("HELLO")
-    ace.search({"pickupPoint": "Perth", "dropPoint": "Sydney", "pickupDate": "20/May/2019", "dropDate": "25/May/2019", "pickupTime": "09:00:00", "dropTime": "15:00:00"})
-    try:
-        carsDOM = WebDriverWait(ace.browser, MAX_TIMEOUT).until(lambda x: x.find_element_by_class_name("l-cars__cards"))
-        parsed = ace.parseCars(carsDOM)
-        print("Parsed is ", parsed)
-    except TimeoutException:
-        print("Loading took too much time!-Try again")
+    ace.search(req)
+    parsed = ace.parseCars(ace)
+    return jsonify({"parsed": parsed})
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+    # ace = ACE()
+    # #ace.enterPromocode("HELLO")
+    # ace.search({"pickupPoint": "Perth", "dropPoint": "Sydney", "pickupDate": "20/May/2019", "dropDate": "25/May/2019", "pickupTime": "09:00:00", "dropTime": "15:00:00"})
+    # try:
+    #     carsDOM = WebDriverWait(ace.browser, MAX_TIMEOUT).until(lambda x: x.find_element_by_class_name("l-cars__cards"))
+    #     parsed = ace.parseCars(carsDOM)
+    #     print("Parsed is ", parsed)
+    # except TimeoutException:
+    #     print("Loading took too much time!-Try again")
 
 
     

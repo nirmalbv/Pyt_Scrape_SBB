@@ -34,7 +34,7 @@ class ACE():
         options.add_argument("--no-sandbox")
         options.add_argument('disable-gpu');
         options.add_argument('window-size=1200,1100');
-        self.browser = Chrome(executable_path='/Users/mac/Documents/scrapping/chromedriver', options=options)
+        self.browser = Chrome(executable_path='drivers/chromedriver', options=options)
         self.browser.implicitly_wait(40)
         self.browser.get(ACE_URL)
         self.browser.maximize_window()
@@ -289,7 +289,11 @@ def search():
             finalResponse.append(parsed)
             ace.tearDown()
 
-    return jsonify({"parsed": finalResponse})
+    #To parse with "Parsed" object at the begining of Json response
+    # return jsonify({"parsed": finalResponse})
+
+    #To parse without "Parsed" object at the begining of Json response
+    return jsonify(finalResponse)
 
 if __name__ == "__main__":
     app.run(debug=True)

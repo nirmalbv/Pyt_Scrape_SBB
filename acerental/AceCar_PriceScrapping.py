@@ -19,7 +19,7 @@ from multiprocessing import Pool
 import copy
 from itertools import repeat
 
-MAX_TIMEOUT = 7
+MAX_TIMEOUT = 12
 ACE_URL = 'https://www.acerentalcars.co.nz/'
 app = Flask(__name__)
 
@@ -112,7 +112,7 @@ class ACE():
         options.add_argument('disable-gpu');
         options.add_argument('window-size=1200,1100');
 
-        self.browser = Chrome(executable_path='/Users/mac/Documents/scrapping/chromedriver', options=options)
+        self.browser = Chrome(executable_path='drivers/chromedriver', options=options)
         self.browser.implicitly_wait(15)
         self.browser.get(ACE_URL)
         self.searchResults = []
@@ -275,8 +275,11 @@ def search():
     else:
         parsed = ace.parseCars(ace)
         ace.tearDown()
-    return jsonify({"parsed": parsed})
+    #To parse with "Parsed" object at the begining of Json response
+    # return jsonify({"parsed": parsed})
 
+    #To parse without "Parsed" object at the begining of Json response
+    return jsonify(parsed)
 
 if __name__ == "__main__":
     app.run(debug=True)
